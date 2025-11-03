@@ -281,4 +281,293 @@ Interactive elements like buttons and menus trigger actions in your app:
     with ui.dialog() as confirm_dialog:
         ui.label("Are you sure you want to delete this model?")
         with ui.row():
-            ui.button("Yes", on_click=lambda: do_delete() or confirm_dialog.close
+            ui.button("Yes", on_click=lambda: do_delete() or confirm_dialog.close())
+            ui.button("Cancel", on_click=confirm_dialog.close)
+    ui.button("Delete Model", on_click=confirm_dialog.open)
+    ```
+    This pattern creates a hidden dialog and a button that opens it. NiceGUI handles the overlay and centering. Dialogs are great for confirmation prompts or additional forms without navigating away.
+
+*   **Notifications & Toasts:** You saw `ui.notify("message")` earlier – this is a quick toast message that appears and fades out. It's very handy for status info (e.g., "Job started successfully"). It might also indicate errors or success by passing a color or icon (`ui.notify("Error: invalid input", color="negative")` perhaps).
+
+*   **Drawer / Sidebar:** If your app has a side navigation or settings panel, you can use `ui.drawer()` to create a sidebar that can slide in. Quasar has a drawer component; NiceGUI likely exposes it. You might tie a button (like a "Menu" ☰ icon) to open/close the drawer via `drawer.toggle()`.
+
+**Tip:** All these interactive components (buttons, menu items, etc.) use event callbacks. You can define the callback as a normal `def` or `lambda`. If the callback needs to do something in the UI (like show/hide elements, update text, etc.), just do it in Python – thanks to the live connection, any changes you make to UI elements (like `label.text = "new"` and `label.update()`) will be sent to the browser immediately.
+
+### 4.4 Layouts: Rows, Columns, Cards, and Tabs
+
+Good layout is critical to a clean UI. NiceGUI, via Quasar, provides flexible layout components:
+
+*   **Horizontal vs Vertical:** Use `ui.row()` to arrange child elements horizontally (in a flex row). Use `ui.column()` to stack them vertically. These are your go-to for basic layout. They correspond to Quasar's QRow/QCol or simply flex CSS. You can nest rows/columns to create grids.
+
+*   **Cards and Containers:** `ui.card()` places a Quasar Card – essentially a panel with some padding and an optional outline. It's great for grouping related elements. You might put an entire form or a chart inside a card. Cards can have titles, sections, etc., but in NiceGUI you just compose it yourself (e.g., first element in card could be `ui.label("Card Title").classes('text-lg')`).
+
+*   **Tabs:** For tabbed content, NiceGUI has `ui.tab` components. Typically you create a `ui.tabs()` container and then add `ui.tab()` items. For example:
+    ```python
+    with ui.tabs() as tabs:
+        ui.tab('Logs'); ui.tab('Metrics')
+    with ui.tab_panels(tabs, value='Logs'):
+        with ui.tab_panel('Logs'):
+            ui.label("Training log here...")
+        with ui.tab_panel('Metrics'):
+            ui.label("Metrics charts here...")
+    ```
+    This would create a tab bar with "Logs" and "Metrics", and corresponding panels that show on selection. The `ui.tab_panels(tabs, ...)` links the panels to the tab set. The API might slightly differ, but conceptually that's how to manage tabs. Tabs help to organize content without separate pages – useful if the content is closely related or you want quick switching (like different views of the same data).
+
+*   **Grid and Columns Size:** For more complex responsive layout, Quasar's grid system can be used. NiceGUI might have `ui.row().classes('items-stretch')` and then inside it multiple `ui.column().classes('w-1/2')` to make two columns, etc. You can also use `ui.grid(columns=3)` or something similar (the docs hint at an element wrapping AG Grid, but for general grid layout, using Tailwind classes for width or Quasar's `<q-col>` with specified sizes might be needed).
+
+*   **Spacing and Alignments:** Use Tailwind utility classes (already included with NiceGUI) to adjust spacing. For instance, `.classes('mt-4')` to add margin-top, `.classes('justify-center')` on a row to center children, etc. Quasar props might also allow alignment: e.g., `ui.row().props('align=center')`.
+
+*   **Example Layout:** Suppose we want a top bar with a title and a content area below. We could do:
+    ```python
+    with ui.row().classes('items-center justify-between'):
+        ui.label("My App").classes('text-2xl')
+        ui.button("Help", on_click=show_help_dialog)
+    ui.separator()  # a horizontal line
+    with ui.row().classes(''):
+        with ui.column().classes('w-1/3'):
+            ui.label("Sidebar content")
+        with ui.column().classes('w-2/3'):
+            ui.label("Main content here")
+    ```
+    This is a simplistic example. For a real app, you might use a more responsive approach or drawers instead of a fixed sidebar. But it shows using nested rows/columns to achieve structure.
+
+*   **Dialogs and Overlays in Layout:** Note that dialogs and menus aren't part of the normal layout flow (they float over it). So you typically define them at the end of your page function (or globally) so they're available but not interfering with main layout.
+
+### 4.5 Navigation and Multi-Page Structure
+
+We touched on pages earlier. In terms of UI building, how do you allow users to navigate your app? Some strategies:
+
+*   **Navigation Bar:** You can create a top navigation bar with buttons or links for each page. For example, at the top of each page function, you might include:
+    ```python
+    with ui.row().classes('bg-gray-200 p-4'):
+        ui.link('Home', '/')
+        ui.link('Configure Model', '/configure')
+        ui.link('Monitor Jobs', '/monitor')
+    ```
+    This would render as simple text links. You could style them as Quasar buttons by doing `ui.button("Configure", on_click=lambda: ui.open('/configure'))` for more button-like feel. There's also `ui.button_link` possibly, but either works.
+
+*   **Sidebar Menu:** Alternatively, a sidebar (drawer) with menu items for pages is common. You can make a drawer that's always visible (if screen wide enough) or toggled by a menu icon for mobile. The drawer content would have `ui.link` or `ui.button` items to open pages. NiceGUI might support a "menu item" component that looks good in a drawer (like `ui.menu_item("Dashboard", on_click=...)`).
+
+*   **Programmatic Navigation:** Sometimes you navigate in code after an action. E.g., after a user submits a form, you might want to redirect them to the monitoring page. You can call `ui.open('/monitor')` in your event handler to send them there. Just ensure that route/page exists.
+
+*   **Page Titles:** By default, the browser tab title might be "NiceGUI" or whatever you set in `ui.run(title="My App")`. You can update it per page if needed by using JavaScript or maybe NiceGUI has some support (not critical though).
+
+*   **Maintaining State Between Pages:** Since each page function is separate, you might need to pass data between them (like an ID of a newly created job from configure -> monitor). You can do this by:
+    *   Storing in a global Python dict keyed by session or globally if applicable.
+    *   Using query parameters in URL (e.g., navigate to `/monitor?job=123` and parse `ui.get_query()`).
+    *   Or using `ui.client.storage` which can hold data in the browser across pages (like local storage, but NiceGUI provides an API). NiceGUI's persistence features allow per-user storage that persists across sessions as well.
+    In many cases, simply re-computing or re-fetching data on the new page is fine (like the monitor page could just load all current jobs from a global list or database when it opens, rather than getting it from the previous page).
+
+*   **Authentication (if any):** NiceGUI doesn't include auth out-of-the-box, but you can use FastAPI's authentication dependencies, or roll a simple login page and restrict other pages by checking a logged-in flag. Discussion of auth would be beyond scope, but be aware it's something you'd need to handle (possibly via a custom route or using `ui.open` to send to login if not logged in).
+
+By carefully constructing your navigation and using `@ui.page` for structure, you ensure the user can smoothly move through the app. It's good to test that the browser's back button works as expected – with NiceGUI pages, it should (since routes are actual URLs), but if you rely solely on `ui.open`, confirm that state is maintained or reloaded appropriately.
+
+Now that we have the building blocks of the UI defined, let's explore how to handle user interactions and dynamic behavior in the next section.
+
+## 5. Events and State Management
+
+Interactivity is where NiceGUI shines – responding to user input and updating the interface dynamically. In this section, we'll discuss how to write event callbacks, manage application state, and ensure the UI reflects state changes (using explicit updates or NiceGUI's binding system). We'll also cover scheduling updates with timers and running background tasks to keep the UI responsive.
+
+### 5.1 Event Handling (Callbacks)
+
+Every interactive UI element in NiceGUI allows you to specify callback functions that execute when an event occurs. Since the UI is driven by the backend, these callbacks run in Python:
+
+*   **Basic Callbacks:** Most components have convenience parameters for common events. For example, `ui.button("Click me", on_click=my_function)` will call `my_function` when the button is clicked. Similarly, `ui.checkbox("I agree", on_change=on_toggle)` triggers on any change (checked/unchecked). The callback can be a function or lambda. If you need to pass arguments, you can use `functools.partial` or lambdas capturing variables. For instance:
+    ```python
+    ui.button("Delete", on_click=lambda: delete_item(item_id))
+    ```
+    This calls `delete_item(item_id)` when clicked. Just be careful with lambdas in loops (common Python caveat – ensure the lambda captures the current value).
+
+*   **Event Objects:** Some events will pass an event object to the callback with additional data (if the signature expects it). For example, file upload or keyboard events might pass info about the key or file. The NiceGUI documentation shows an example for input keydown event: `ui.input().on('keydown.enter', handle_enter)`. The handler might get the key event data. But for most `on_click` or `on_change`, your function doesn't need parameters, or you can retrieve state via captured variables/UI element references.
+
+*   **UI Updates in Callbacks:** Within a callback, you can perform any Python actions (launching a script, writing to disk, etc.) and also modify the UI. For example, suppose a button starts a training process – you might want the button to disappear or disable once clicked. In the callback, you could do:
+    ```python
+    button.disable()  # mark it disabled (greyed out)
+    button.update()
+    ```
+    Then re-enable when done. Or update a status label: `status_label.text = "Training started..."; status_label.update()`. The `.update()` method is crucial – it tells NiceGUI to send the updated state of that element to the client. Some properties, like `.value` of inputs or `.checked` of a checkbox, might auto-sync, but in general if you change an element from code, call `update()` on it (or `ui.update(element)` could be a utility).
+
+*   **Long-running callbacks:** If your callback might take a while (say, launching a subprocess and waiting), you should offload it (see Background Tasks below). If you don't, the UI will freeze for all users while that callback is running, because the single-thread event loop is busy. A common pattern is to quickly spawn a thread or task in the callback and return, so the UI remains responsive.
+
+*   **JavaScript events:** NiceGUI allows listening to arbitrary DOM events via the `.on()` method. For example, `ui.input().on('blur', func)` if you want to catch when an input loses focus. But most of the time, the provided `on_click`/`on_change` cover what you need.
+
+*   **Example:** Suppose we want to update a chart when a dropdown selection changes:
+    ```python
+    chart = ui.line_plot(...)  # hypothetical chart component
+    def update_chart():
+        new_option = dropdown.value
+        data = fetch_data_for(new_option)
+        chart.options = {"series": [{"data": data}]}  # update options
+        chart.update()
+    dropdown = ui.select(options=['Option1','Option2'], on_change=update_chart)
+    ```
+    This way, whenever the user picks a different option, the callback fetches new data, updates the chart's series, and calls `update()` on the chart to re-render it. (If using the Highcharts component, it might require calling `chart.update()` method specifically – we'll cover charts in Part 2.)
+
+### 5.2 Updating State and Data Binding
+
+Managing application state (the variables and data that represent the UI's content) is a central task. NiceGUI offers features to make this easier:
+
+*   **Manual State Management:** The straightforward way is to keep Python variables or data structures for your state. For instance, a global dictionary of running jobs, or a list of log lines. You update these in callbacks and then manually refresh parts of the UI. This is essentially what you'd do in a normal backend – treat the UI as a view onto your data. Whenever data changes, you push updates to UI elements. For example:
+    ```python
+    progress = 0
+    progress_bar = ui.linear_progress(value=0)
+
+    def on_tick():
+        global progress
+        progress += 1
+        progress_bar.set_value(progress)
+        progress_bar.update()
+        if progress >= 100:
+            timer.deactivate()
+    timer = ui.timer(interval=1.0, callback=on_tick)  # increment progress every 1s
+    ```
+    Here `progress` is a Python state variable. Each tick we update it and then call `set_value` on the UI element followed by `update()`. This explicit method works fine and is clear.
+
+*   **Bindable Properties (Data Binding):** NiceGUI can reduce boilerplate by binding UI components to Python objects. The framework introduced bindable properties that follow an MVVM-style pattern. Essentially, certain UI element attributes (like a label's text, or an input's value) can be tied to an attribute of a Python object. When one changes, the other updates automatically. Under the hood, NiceGUI's `BindableProperty` mechanism uses descriptors and event wiring. An example from the NiceGUI docs (and the Medium article) is:
+    ```python
+    from nicegui.binding import bind_from, BindableProperty
+    class Person:
+        name = BindableProperty()
+
+    p = Person()
+    name_input = ui.input()
+    bind_from(name_input, 'value', p, 'name')
+    ```
+    Now if `p.name` changes, the input's value updates, and if the user types something, `p.name` updates. This can be very powerful – especially for complex forms or when multiple elements reflect the same state. In our context, if we had a class representing a training job with a `status` property, we could bind a UI label's text to that status. As the job progresses (from code, we set `job.status = "50%"`), the label on the UI would update without calling `update` manually.
+
+    The Medium article showed a more advanced use: a custom `BindableList` to bind a list of items to a UI list component, so that adding/removing items in Python automatically re-renders the list UI. That example is advanced, but it illustrates that almost any UI element's state (items in a list, selected tab, etc.) can be bound.
+
+    For typical use, you might use simpler helper functions:
+    *   `element.bind_value_to(model, 'attr')` or `element.bind_text_to(...)` as shorthand if provided.
+    *   E.g., `checkbox.bind_value_to(settings, 'enable_logging')` would keep `settings.enable_logging` in sync with the checkbox's checked state.
+    *   Conversely, `table.bind_rows_from(data_model, 'records')` could update a table when `data_model.records` list changes (hypothetical example).
+
+    Data binding is optional; you can always manually update values. But it's worth using for forms and dynamic content to avoid forgetting a UI update call.
+
+*   **Session vs Global State:** Decide what needs to be per-user. If using `@ui.page`, any variables inside the page function will get re-created per session. If you need a global state (like a list of all jobs or a global log), define it globally and protect access if needed (since the single thread ensures atomicity unless you use threads, in which case use locks). NiceGUI also has a notion of general vs user-specific data: it supports general (shared) and per-user storage. For example, `ui.client.storage.user` vs `ui.client.storage.general` might exist. You can use these to persist state in browser storage or server memory.
+
+*   **Refreshing UI – `ui.update` and `ui.refreshable`:** Besides calling `update` on individual elements, NiceGUI provides a decorator or context `ui.refreshable`. If you mark a function as `@ui.refreshable`, you can call that function and it will automatically update its output in the UI when underlying data changes. This is similar to how Streamlit re-renders, but under your control. For instance:
+    ```python
+    @ui.refreshable
+    def show_summary():
+        ui.label(f"Jobs completed: {jobs_completed}")
+        ui.label(f"Last run: {last_run_time}")
+    # ... somewhere later
+    jobs_completed += 1
+    show_summary.refresh()  # will update the two labels inside
+    ```
+    This ensures the snippet inside `show_summary` re-runs and updates the labels. It's a structured way to update multiple elements together.
+
+In practice, you might start with manual updates and adopt binding for cases where it simplifies the code. For our ML app example, we could have a global dict `jobs` where we store info. A background thread updates `jobs[job_id]['progress']`, and a UI timer periodically reads that and updates a progress bar. Or we bind the progress bar's value to `jobs[job_id].progress` directly if using an object. Both approaches can work; binding just abstracts the glue.
+
+### 5.3 Timers and Live Updates
+
+Live updating the interface is often needed for dashboards (e.g., periodically refresh metrics, or update a chart as data flows in). NiceGUI offers the `ui.timer` utility for this:
+
+*   **`ui.timer`:** `ui.timer(interval=seconds, callback=my_func, once=False)` creates a timer that calls `my_func` every `interval` seconds. By default, it repeats; if you set `once=True` it would only run once after the delay (like a timeout). This is implemented in the browser (using JS `setInterval` or similar via Quasar) and triggers a call to the Python backend on each tick. Use timers sparingly (an update every 0.01s is possible per features, but that will generate a lot of traffic— in practice keep it reasonable like 0.5s+).
+
+    **Example use:** Update GPU utilization label every 5 seconds:
+    ```python
+    gpu_label = ui.label("GPU: ?")
+    def refresh_gpu():
+        util = get_gpu_utilization()  # a function that reads NVML or similar
+        gpu_label.text = f"GPU Utilization: {util:.1f}%"
+        gpu_label.update()
+    ui.timer(5.0, refresh_gpu)
+    ```
+    This will call `refresh_gpu` every 5 seconds, and the label will show updated info. It's essentially like a loop in the UI.
+
+*   **Manual loop using asyncio:** Alternatively, since NiceGUI is async, you could create an `async def background_task()` that loops with `await asyncio.sleep(5)` and does updates. But NiceGUI's timer is easier as it handles scheduling the callbacks on the main thread appropriately.
+
+*   **Live Charts or Logs:** If you want to stream logs line by line to a text box, one method is to have a timer that checks a buffer and appends new lines to a `ui.label` or `ui.log_area` if such exists. Another approach is using an async generator and `ui.stream` if something like that exists. However, a simple repeating callback to pull new logs and update a `ui.markdown` or `ui.preformatted` text is fine.
+
+    For charts that update (like a real-time graph of loss vs epoch), you can either:
+    *   Update the data series in the callback (like our earlier example using `chart.update()`). Highcharts can handle dynamic updates if you call its update function or add points via series API – but from Python side, you likely recompute the option dict and call `chart.update()`.
+    *   Or re-create the chart element each time (less ideal). So timers + chart references is the way.
+
+*   **Stopping updates:** The timer object returned by `ui.timer` has methods like `deactivate()` to stop it. You can conditionally call that (as seen in the progress example pseudo-code). If you don't stop a repeating timer, it will keep going as long as the session is open (which is fine for periodic updates).
+
+*   **Throttling/Performance:** If you find that frequent updates flood the UI (e.g., printing every log line as it comes could overwhelm), you might aggregate updates (update UI with batches of lines rather than one line at a time), or use a slightly longer interval. Also consider client-side rendering – for logs, maybe easier is to use a `<pre>` block that you keep appending text to (the browser can handle some text addition every second or so no problem). NiceGUI is efficient with WebSocket, but every update is a message, so keep payloads moderate.
+
+### 5.4 Background Tasks for Long-Running Processes
+
+In our scenario, certain operations (like fine-tuning a model) can take minutes or hours. We must ensure the UI remains responsive during those operations and that we can update the UI with progress. NiceGUI is based on FastAPI and Uvicorn, so while it can handle async I/O easily, a long CPU-bound task in a callback will block the event loop. Strategies to handle this:
+
+*   **Use Threads or Async IO:** You can offload work to a separate thread or process. For instance, Python's `threading.Thread` or an `asyncio.to_thread` call. If you spawn a thread for training, that thread can run concurrently while the main thread continues serving UI. You'll need to periodically communicate from that thread to the main thread (maybe by updating shared variables and using timers on main thread to check them, or by scheduling callbacks via NiceGUI).
+
+    FastAPI (and thus NiceGUI) also has a mechanism: you can inject a `BackgroundTasks` object (from fastapi) to schedule background tasks. However, in NiceGUI specifically, they have a helper: the search snippet suggests a `background_tasks.create()` method in NiceGUI to run an async function in background. Possibly `nicegui.background_tasks.create(coro)` returns a task handle. You could use this to start an async job (like an `async def train_model(): ...` that uses `await` for any I/O). The background task will run, and you can periodically send UI updates from it using `ui.run_javascript` or perhaps by modifying UI elements if thread-safe.
+
+    If using plain threads, ensure thread-safe access to NiceGUI. Typically, updating UI elements from a background thread might not directly be safe. It's wise to funnel UI updates back to the main thread. One simple way: use `ui.notify` from the thread – NiceGUI might queue it to main automatically, but I would not assume that. Instead, you can have the thread add messages to a `queue.Queue`, and a `ui.timer` on main thread polls that queue and applies updates.
+
+*   **Example (Threaded Task):**
+    ```python
+    import threading
+    progress = 0
+    status_label = ui.label("Status: Idle")
+    def train_model(params):
+        global progress
+        for epoch in range(1, params.epochs+1):
+            # ... training logic ...
+            progress = epoch / params.epochs * 100
+            # Here instead of directly updating UI, just update a shared var
+        # when done, maybe store results or set a flag
+    def start_training():
+        status_label.text = "Training started"
+        status_label.update()
+        threading.Thread(target=train_model, args=(current_params,)).start()
+    ui.button("Start Training", on_click=start_training)
+    # Timer to update UI progress
+    def refresh_status():
+        status_label.text = f"Progress: {progress:.0f}%"
+        status_label.update()
+        if progress >= 100:
+            status_label.text = "Training completed"
+            status_label.update()
+            timer.deactivate()
+    timer = ui.timer(1.0, refresh_status)
+    ```
+    This is a rudimentary pattern. A more sophisticated approach is to incorporate the updating within the thread: NiceGUI might allow calling `ui.update()` from any thread and it queues it. Actually, NiceGUI likely collects all UI changes from event loop and sends them at end of cycle, so cross-thread might not be directly supported. Hence the decoupling with shared state and timer is a safe bet.
+
+*   **NiceGUI Background Task Utility:** If `background_tasks.create` exists as per docs, you could do:
+    ```python
+    async def train_model_async(params):
+        for epoch in range(...):
+            # do training for an epoch (maybe using await for heavy I/O)
+            ui.notify(f"Completed epoch {epoch}")
+        ui.notify("Training done!")
+    background_tasks.create(train_model_async(params))
+    ```
+    This would run in background. The `ui.notify` calls within should be thread-safe if it's actually still on the event loop (since async tasks run on the same loop, just concurrently). That would be ideal for tasks that can be written in async style (if mostly I/O or if using something like `await asyncio.to_thread` for CPU work).
+
+*   **Progress Feedback:** For long tasks, providing feedback is key. Some options:
+    *   Update a progress bar or percentage label periodically (as shown).
+    *   Stream log output to a text area live. If you have the process output (say from `subprocess.Popen`), you can read from it in a thread and append lines to a list; use timer to flush to UI.
+    *   Use `ui.notify` for milestone updates (simple but not persistent on screen).
+    *   Change button text or disable it ("Running…").
+    *   Provide a "Cancel" button: that could set a flag the background task checks to break out.
+
+*   **Example – Visualizing Logs:** If fine-tuning prints logs, you can capture them. E.g., if using an external script, launch it with `subprocess.Popen(..., stdout=PIPE)`. Then spawn a thread to read the stdout line by line. Each line, add to a global list `logs.append(line)`. In UI, have a `ui.markdown` or `ui.log_area` that periodically updates to include new lines:
+    ```python
+    log_md = ui.markdown("", highlight=False)  # no highlight for raw text
+    last_seen = 0
+    def update_logs():
+        nonlocal last_seen
+        if last_seen < len(logs):
+            # append new lines
+            new_text = "\n".join(logs[last_seen:])  
+            log_md.content += ("\n" + new_text)
+            log_md.update()
+            last_seen = len(logs)
+    ui.timer(1.0, update_logs)
+    ```
+    This naive approach just appends text. You might want to limit log size or scroll. Alternatively, use `ui.preformatted()` if available to keep text spacing.
+
+*   **Monitoring System Metrics:** Similar approach – use a background thread or timer to periodically poll system metrics (CPU, GPU, memory). For GPU, if NVML is installed, `pynvml` can query usage quickly. Put those in a global and update UI with a timer. You could use a chart to plot historical usage: store a `deque` of last N values and update a line chart's series each tick with the new list.
+
+*   **Concurrency Considerations:** Because NiceGUI uses one server process, threads share memory – which is fine, just protect shared data if needed. If you expect heavy CPU usage, note that Python threads won't actually run in parallel due to GIL (unless your computations release GIL, like NumPy operations do, or you use `multiprocessing`). For pure Python training loops, consider using `multiprocessing` to truly parallelize or just accept that the UI will be a bit sluggish (though in an async model, one CPU-bound thread can starve others). Another trick: use an external process for training and communicate via file or socket, to keep the UI process light.
+
+*   **Cancelling tasks:** If you start a thread, provide some global flag the thread checks, and a UI button to set that flag (like stop early). If using async `background_tasks`, it might return a task object you can cancel. Ensure to handle cleanup.
+
+The NiceGUI documentation explicitly encourages using background tasks for CPU-intensive work so the UI stays responsive. Following that guidance is important for an engineering-grade app.
+
+Having covered events and tasks, you now have a complete understanding of building interactive NiceGUI applications. For advanced topics like data visualization, styling, and deployment, please refer to Part 2: Advanced Guide.
