@@ -1,0 +1,52 @@
+[project]
+name = "msquant"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tasks]
+# Run the NiceGUI app (dev)
+dev = { cmd = "python -m msquant.app.main", depends-on = ["install-plugins"] }
+# Type checking
+typecheck = "pyright src"
+# Lint
+lint = "ruff check src"
+# Format
+fmt = "ruff format src"
+# Unit tests placeholder (pytest or hatch)
+test = "pytest -q"
+# Install optional NiceGUI plugin dynamically (Highcharts)
+install-plugins = "python -c \"import importlib; import sys; sys.exit(0) if importlib.util.find_spec('nicegui_highcharts') else 1\""
+
+[dependencies]
+python = "3.10.*"
+pip = "*"
+# CLI/dev tools pinned for reproducibility
+ruff = ">=0.6.9,<1.0"
+pyright = ">=1.1.380,<2.0"
+pytest = ">=8.1,<9.0"
+
+[pypi-dependencies]
+# UI
+nicegui = ">=2.0.0"
+nicegui-highcharts = ">=0.2.0"
+# Quantization / ML stack used by the engine
+vllm = ">=0.11.0"
+llmcompressor = "*"
+transformers = ">=4.52.0"
+datasets = "*"
+accelerate = "*"
+safetensors = "*"
+huggingface_hub = "*"
+hf_transfer = "*"
+tqdm = "*"
+pandas = ">=2.2.0"
+# Optional dev extras
+types-tqdm = "*"
+
+[feature.cuda]
+# Placeholder; CUDA-enabled dev should rely on NVIDIA container. For CPU dev, keep default.
+# If you must develop against local GPU with conda-forge CUDA packages, define an optional feature.
+
+[environments]
+# default environment
+default = { solve-group = "default" }

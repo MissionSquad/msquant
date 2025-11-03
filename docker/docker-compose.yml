@@ -1,0 +1,25 @@
+services:
+  msquant:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gpu
+    image: ghcr.io/MissionSquad/msquant:dev   # replace OWNER with your GitHub org/user
+    container_name: msquant
+    ports:
+      - "8080:8080"
+    environment:
+      PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True,max_split_size_mb:64"
+      HF_HOME: /workspace/hf
+      HF_DATASETS_CACHE: /workspace/hf/datasets
+      HF_HUB_ENABLE_HF_TRANSFER: "1"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0","2"]     # adjust for your host
+              capabilities: ["gpu"]
+    volumes:
+      - ../hf:/workspace/hf
+      - ../out:/workspace/out
+    runtime: nvidia

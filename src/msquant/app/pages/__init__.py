@@ -1,0 +1,1 @@
+"""MSQuant application pages."""

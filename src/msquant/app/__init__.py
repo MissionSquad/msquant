@@ -1,0 +1,1 @@
+"""MSQuant NiceGUI application."""
