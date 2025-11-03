@@ -11,19 +11,26 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # System packages (if needed, keep minimal)
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-# Upgrade pip and install Python deps
-RUN pip install --upgrade pip && \
-    pip install \
-      "nicegui>=2.0.0" \
-      "nicegui-highcharts>=0.2.0" \
-      "vllm>=0.11.0" \
-      "llmcompressor" \
-      "transformers>=4.52.0" \
-      "datasets" "accelerate" "safetensors" \
-      "huggingface_hub" "hf_transfer" "tqdm" \
-      "pandas"
+# Upgrade pip
+RUN pip install --upgrade pip
+
+# Install Python dependencies
+RUN pip install "datasets"
+
+RUN pip install "pandas" "huggingface_hub" "hf_transfer" "tqdm"
+
+RUN pip install "accelerate" "safetensors"
+
+RUN pip install "nicegui>=2.0.0" "nicegui-highcharts>=0.2.0" 
+      
+RUN pip install "vllm>=0.11.0" 
+
+RUN pip install "transformers>=4.52.0"
+
+RUN pip install "llmcompressor"
 
 WORKDIR /workspace
 
