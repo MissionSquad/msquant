@@ -25,12 +25,3 @@ jobs:
 
       - name: Unit tests
         run: pixi run test
-
-      - name: Build container (no push)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/Dockerfile.gpu
-          push: false
-          load: true
-          tags: msquant:pr-${{ github.sha }}
