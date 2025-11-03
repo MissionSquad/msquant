@@ -49,7 +49,7 @@ This document summarizes the fixes applied to address issues identified during t
 
 **Files Modified:**
 - `src/msquant/app/pages/monitor.py` - Complete rewrite with charts
-  - Imports `nicegui_highcharts.HighChart` with graceful fallback
+  - Uses `ui.highchart()` from NiceGUI (after installing nicegui-highcharts plugin)
   - GPU selector dropdown for multi-GPU systems
   - Four real-time charts:
     - GPU Utilization (0-100%)
@@ -62,7 +62,7 @@ This document summarizes the fixes applied to address issues identified during t
 **Features:**
 - Responsive 2-column grid layout
 - Auto-refreshing every second
-- Graceful degradation if nicegui-highcharts unavailable
+- Requires nicegui-highcharts plugin to be installed
 - Cancel button now disabled when job not running
 
 ---
@@ -193,10 +193,11 @@ Chart update cycle:
 5. Update chart: `chart.options['series'][0]['data'] = new_data`
 6. Call `chart.update()` to re-render
 
-Graceful fallback:
-- Imports `HighChart` with try/except
-- Shows warning message if plugin unavailable
-- Text summary still works without charts
+Installation note:
+- The `nicegui-highcharts` plugin must be installed via pip
+- After installation, it adds `ui.highchart()` to NiceGUI's API
+- No direct import of `HighChart` class is needed
+- Charts are created using `ui.highchart(config_dict).classes('w-full')`
 
 ---
 
