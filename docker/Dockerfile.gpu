@@ -1,0 +1,39 @@
+ARG BASE_IMAGE=nvcr.io/nvidia/pytorch:24.06-py3
+FROM ${BASE_IMAGE}
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/workspace/hf \
+    HF_DATASETS_CACHE=/workspace/hf/datasets \
+    HF_HUB_ENABLE_HF_TRANSFER=1 \
+    PYTHONUNBUFFERED=1
+
+# System packages (if needed, keep minimal)
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip and install Python deps
+RUN pip install --upgrade pip && \
+    pip install \
+      "nicegui>=2.0.0" \
+      "nicegui-highcharts>=0.2.0" \
+      "vllm>=0.11.0" \
+      "llmcompressor" \
+      "transformers>=4.52.0" \
+      "datasets" "accelerate" "safetensors" \
+      "huggingface_hub" "hf_transfer" "tqdm" \
+      "pandas"
+
+WORKDIR /workspace
+
+# Copy source
+# Assuming our code is in ./src/msquant. Adjust if different.
+COPY src /workspace/src
+ENV PYTHONPATH=/workspace/src
+
+# Expose NiceGUI port
+EXPOSE 8080
+
+# Entrypoint
+CMD ["python", "-m", "msquant.app.main"]

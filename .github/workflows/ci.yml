@@ -1,0 +1,36 @@
+name: CI (PR)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: ["**"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: "latest"
+          cache: true
+
+      - name: Lint
+        run: pixi run lint
+
+      - name: Typecheck
+        run: pixi run typecheck
+
+      - name: Unit tests
+        run: pixi run test
+
+      - name: Build container (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.gpu
+          push: false
+          load: true
+          tags: msquant:pr-${{ github.sha }}
