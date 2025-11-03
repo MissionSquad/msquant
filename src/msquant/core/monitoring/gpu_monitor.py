@@ -181,8 +181,9 @@ class GPUMonitor:
 
 def format_bytes(bytes_val: int) -> str:
     """Format bytes to human-readable string."""
+    size = float(bytes_val)
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if bytes_val < 1024.0:
-            return f"{bytes_val:.1f} {unit}"
-        bytes_val /= 1024.0
-    return f"{bytes_val:.1f} PB"
+        if size < 1024.0:
+            return f"{size:.1f} {unit}"
+        size /= 1024.0
+    return f"{size:.1f} PB"

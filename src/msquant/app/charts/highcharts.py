@@ -1,5 +1,5 @@
 """Highcharts configuration helpers for GPU metrics visualization."""
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 
@@ -7,7 +7,7 @@ def build_line_chart(
     title: str,
     y_label: str,
     unit: str = "",
-    y_max: int = None,
+    y_max: Optional[int] = None,
     y_min: int = 0
 ) -> Dict[str, Any]:
     """

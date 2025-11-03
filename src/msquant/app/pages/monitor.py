@@ -1,10 +1,6 @@
 """Monitor page for tracking job progress and GPU metrics."""
 from nicegui import ui
-try:
-    from nicegui_highcharts import HighChart
-except ImportError:
-    # Fallback if plugin not available
-    HighChart = None
+from nicegui_highcharts import HighChart  # type: ignore[import-untyped]
 
 from msquant.services import JobService
 from msquant.core.monitoring import GPUMonitor
@@ -50,40 +46,36 @@ def create_monitor_page(job_service: JobService, gpu_monitor: GPUMonitor):
             # Text summary
             gpu_summary = ui.markdown('').classes('mb-4')
             
-            # Charts section (only if HighChart is available)
-            if HighChart:
-                ui.label('Real-time Metrics').classes('text-xl font-bold mb-2')
+            # GPU Charts
+            ui.label('Real-time Metrics').classes('text-xl font-bold mb-2')
+            
+            with ui.grid(columns=2).classes('w-full gap-4'):
+                # Utilization chart
+                util_chart = HighChart(
+                    build_line_chart("GPU Utilization", "Utilization", "%", y_max=100)
+                ).classes('w-full')
                 
-                with ui.grid(columns=2).classes('w-full gap-4'):
-                    # Utilization chart
-                    util_chart = HighChart(
-                        build_line_chart("GPU Utilization", "Utilization", "%", y_max=100)
-                    ).classes('w-full')
-                    
-                    # Memory chart
-                    mem_chart = HighChart(
-                        build_line_chart("GPU Memory", "Memory", "%", y_max=100)
-                    ).classes('w-full')
-                    
-                    # Temperature chart
-                    temp_chart = HighChart(
-                        build_line_chart("GPU Temperature", "Temperature", "°C")
-                    ).classes('w-full')
-                    
-                    # Power chart
-                    power_chart = HighChart(
-                        build_line_chart("GPU Power", "Power", "W")
-                    ).classes('w-full')
+                # Memory chart
+                mem_chart = HighChart(
+                    build_line_chart("GPU Memory", "Memory", "%", y_max=100)
+                ).classes('w-full')
                 
-                charts = {
-                    'utilization': util_chart,
-                    'memory': mem_chart,
-                    'temperature': temp_chart,
-                    'power': power_chart
-                }
-            else:
-                ui.label('⚠️ Highcharts visualization not available. Install nicegui-highcharts for real-time charts.').classes('text-orange-600')
-                charts = None
+                # Temperature chart
+                temp_chart = HighChart(
+                    build_line_chart("GPU Temperature", "Temperature", "°C")
+                ).classes('w-full')
+                
+                # Power chart
+                power_chart = HighChart(
+                    build_line_chart("GPU Power", "Power", "W")
+                ).classes('w-full')
+            
+            charts = {
+                'utilization': util_chart,
+                'memory': mem_chart,
+                'temperature': temp_chart,
+                'power': power_chart
+            }
         
         def update_status():
             """Update job status and logs."""

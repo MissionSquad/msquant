@@ -117,7 +117,7 @@ class AWQQuantizer:
         
         return [
             AWQModifier(
-                config_groups=config_groups,
+                config_groups=config_groups,  # type: ignore
                 ignore=["lm_head"],
             ),
         ]
@@ -190,7 +190,7 @@ class NVFP4Quantizer:
         
         return [
             QuantizationModifier(
-                config_groups=config_groups,
+                config_groups=config_groups,  # type: ignore
                 ignore=["lm_head"],
             ),
         ]
