@@ -8,7 +8,7 @@ import sys
 import time
 import traceback
 from datetime import datetime
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Optional, Callable
 import subprocess
 
 import torch
@@ -293,7 +293,7 @@ def quantize(config: QuantizationConfig, log_callback: Optional[Callable[[str], 
         
         return output_dir
         
-    except Exception as e:
+    except Exception:
         logger.error("Quantization failed:")
         logger.error(traceback.format_exc())
         raise

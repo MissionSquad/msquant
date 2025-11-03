@@ -1,6 +1,6 @@
 """Storage and path management for MSQuant."""
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict
 from pathlib import Path
 
 

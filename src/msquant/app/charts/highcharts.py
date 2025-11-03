@@ -1,5 +1,5 @@
 """Highcharts configuration helpers for GPU metrics visualization."""
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List
 from datetime import datetime
 
 

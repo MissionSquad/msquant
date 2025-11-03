@@ -5,7 +5,7 @@ import signal
 import subprocess
 import tempfile
 import threading
-from typing import Optional, Callable, List
+from typing import Optional, List
 from collections import deque
 from enum import Enum
 

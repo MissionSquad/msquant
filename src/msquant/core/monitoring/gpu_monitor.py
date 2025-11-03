@@ -3,8 +3,7 @@ GPU Monitoring utilities for MSQuant.
 Provides real-time GPU metrics similar to nvtop.
 """
 import subprocess
-import json
-from typing import List, Dict, Optional
+from typing import List, Dict
 from datetime import datetime
 from collections import deque
 
@@ -103,12 +102,12 @@ class GPUMonitor:
                             self.gpu_history[gpu.index] = deque(maxlen=self.history_size)
                         self.gpu_history[gpu.index].append(gpu)
                         
-                    except (ValueError, IndexError) as e:
+                    except (ValueError, IndexError):
                         continue
             
             return gpus
             
-        except Exception as e:
+        except Exception:
             return []
     
     def get_history(self, gpu_index: int) -> List[GPUMetrics]:

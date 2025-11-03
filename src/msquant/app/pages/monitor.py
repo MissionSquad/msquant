@@ -129,7 +129,7 @@ def create_monitor_page(job_service: JobService, gpu_monitor: GPUMonitor):
                 if gpu_options != available_gpus["list"]:
                     available_gpus["list"] = gpu_options
                     gpu_select.options = gpu_options
-                    if not selected_gpu_index["value"] in [g.index for g in gpus]:
+                    if selected_gpu_index["value"] not in [g.index for g in gpus]:
                         selected_gpu_index["value"] = gpus[0].index
                         gpu_select.value = gpus[0].index
             

@@ -6,7 +6,6 @@ It deserializes configuration, runs quantization, and outputs logs to stdout.
 import argparse
 import json
 import sys
-from typing import Optional
 
 from msquant.core.quantizer import QuantizationConfig, quantize
 
