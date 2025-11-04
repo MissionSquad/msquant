@@ -75,13 +75,13 @@ class HFSearchDialog:
                 ).classes('w-48')
 
                 self.direction_select = ui.select(
-                    options=[
-                        {'label': 'Descending', 'value': -1},
-                        {'label': 'Ascending', 'value': 1}
-                    ],
+                    options={
+                        -1: 'Descending',
+                        1: 'Ascending'
+                    },
                     value=-1,
                     label='Direction'
-                ).classes('w-48').props('emit-value map-options')
+                ).classes('w-48')
 
             # Error message container
             self.error_label = ui.label('').classes('text-red-500 mb-2')
