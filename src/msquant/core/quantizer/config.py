@@ -35,12 +35,35 @@ class QuantizationConfig:
         self.calib_dataset = calib_dataset
         self.calib_config = calib_config
         self.calib_split = calib_split
-        self.max_calib_samples = max_calib_samples
-        self.max_seq_length = max_seq_length
-        
-        # AWQ
-        self.w_bit = w_bit
-        self.group_size = group_size
+
+        # Convert numeric parameters with validation
+        try:
+            self.max_calib_samples = int(max_calib_samples)
+            if self.max_calib_samples <= 0:
+                raise ValueError("max_calib_samples must be positive")
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid max_calib_samples value '{max_calib_samples}': must be a positive integer") from e
+
+        try:
+            self.max_seq_length = int(max_seq_length)
+            if self.max_seq_length <= 0:
+                raise ValueError("max_seq_length must be positive")
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid max_seq_length value '{max_seq_length}': must be a positive integer") from e
+
+        # AWQ parameters
+        try:
+            self.w_bit = int(w_bit)
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid w_bit value '{w_bit}': must be an integer") from e
+
+        try:
+            self.group_size = int(group_size)
+            if self.group_size <= 0:
+                raise ValueError("group_size must be positive")
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid group_size value '{group_size}': must be a positive integer") from e
+
         self.zero_point = zero_point
         
         # NVFP4

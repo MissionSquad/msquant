@@ -12,7 +12,10 @@ def create_monitor_page(job_service: JobService, gpu_monitor: GPUMonitor):
     # State for selected GPU
     selected_gpu_index = {"value": 0}
     available_gpus = {"list": []}
-    
+
+    # Track last notified status to prevent notification spam
+    last_notified_status: dict[str, str | None] = {"status": None, "message": None}
+
     with ui.column().classes('w-full p-8 gap-4'):
         ui.label('Job Monitor').classes('text-4xl font-bold')
         
@@ -79,25 +82,38 @@ def create_monitor_page(job_service: JobService, gpu_monitor: GPUMonitor):
             """Update job status and logs."""
             status = job_service.get_status()
             status_label.text = f'Status: {status.value.upper()}'
-            
+
             # Enable/disable cancel button based on status
             cancel_btn.props(f'disable={status.value != "running"}')
-            
+
             # Get logs
             logs = job_service.get_logs(last_n=100)
             log_output.value = '\n'.join(logs) if logs else 'No logs yet...'
-            
-            # Show result or error
-            if status.value == 'completed':
+
+            # Show result or error - but only once per status change
+            current_status = status.value
+
+            if current_status == 'completed':
                 result = job_service.get_result()
-                if result:
+                if result and last_notified_status["status"] != 'completed':
                     ui.notify(f'Job completed! Output: {result}', type='positive')
-            elif status.value == 'failed':
+                    last_notified_status["status"] = 'completed'
+                    last_notified_status["message"] = result
+            elif current_status == 'failed':
                 error = job_service.get_error()
-                if error:
+                if error and (last_notified_status["status"] != 'failed' or last_notified_status["message"] != error):
                     ui.notify(f'Job failed: {error}', type='negative')
-            elif status.value == 'cancelled':
-                ui.notify('Job was cancelled', type='warning')
+                    last_notified_status["status"] = 'failed'
+                    last_notified_status["message"] = error
+            elif current_status == 'cancelled':
+                if last_notified_status["status"] != 'cancelled':
+                    ui.notify('Job was cancelled', type='warning')
+                    last_notified_status["status"] = 'cancelled'
+                    last_notified_status["message"] = 'cancelled'
+            elif current_status == 'idle':
+                # Reset notification state when job is idle (ready for next job)
+                last_notified_status["status"] = None
+                last_notified_status["message"] = None
         
         def cancel_job():
             """Cancel the current job."""
