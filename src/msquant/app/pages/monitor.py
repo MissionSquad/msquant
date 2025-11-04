@@ -134,10 +134,15 @@ def create_monitor_page(job_service: JobService, gpu_monitor: GPUMonitor):
             # Update text summary
             summary = gpu_monitor.format_summary(gpus)
             gpu_summary.content = summary
-            
-            # Update charts if available
+
+            # Update charts only if we have a valid GPU selection
             if charts and gpus:
                 current_gpu = selected_gpu_index["value"]
+                # Verify that the selected GPU actually exists in the current GPU list
+                gpu_indices = [g.index for g in gpus]
+                if current_gpu not in gpu_indices:
+                    return  # Don't update charts if selected GPU is invalid
+
                 history = gpu_monitor.get_history(current_gpu)
                 
                 if history:
