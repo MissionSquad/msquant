@@ -277,6 +277,13 @@ class GGUFQuantizer:
     def _download_model(model_id: str, cache_dir: str, logger: QuantizationLogger) -> str:
         """Download HuggingFace model to local cache."""
         from huggingface_hub import snapshot_download
+        from huggingface_hub.utils import (
+            HfHubHTTPError,
+            RepositoryNotFoundError,
+            GatedRepoError,
+            LocalEntryNotFoundError,
+        )
+        from requests.exceptions import ConnectionError, Timeout
 
         logger.info(f"Downloading model {model_id} to cache...")
         try:
@@ -287,8 +294,45 @@ class GGUFQuantizer:
             )
             logger.info(f"Model downloaded to {local_path}")
             return local_path
+        except RepositoryNotFoundError as e:
+            raise RuntimeError(
+                f"Model '{model_id}' not found on HuggingFace Hub. "
+                f"Please verify the model ID is correct."
+            ) from e
+        except GatedRepoError as e:
+            raise RuntimeError(
+                f"Model '{model_id}' is gated and requires authentication. "
+                f"Please log in with 'huggingface-cli login' and ensure you have access."
+            ) from e
+        except HfHubHTTPError as e:
+            if e.response.status_code == 401:
+                raise RuntimeError(
+                    f"Authentication failed for model '{model_id}'. "
+                    f"Please log in with 'huggingface-cli login'."
+                ) from e
+            elif e.response.status_code == 403:
+                raise RuntimeError(
+                    f"Access denied for model '{model_id}'. "
+                    f"You may need to accept the model's license agreement on HuggingFace Hub."
+                ) from e
+            else:
+                raise RuntimeError(
+                    f"HTTP error {e.response.status_code} while downloading model '{model_id}': {e}"
+                ) from e
+        except (ConnectionError, Timeout) as e:
+            raise RuntimeError(
+                f"Network error while downloading model '{model_id}'. "
+                f"Please check your internet connection and try again."
+            ) from e
+        except LocalEntryNotFoundError as e:
+            raise RuntimeError(
+                f"Model files not found for '{model_id}'. "
+                f"The repository may be empty or misconfigured."
+            ) from e
         except Exception as e:
-            raise RuntimeError(f"Failed to download model: {e}") from e
+            raise RuntimeError(
+                f"Failed to download model '{model_id}': {e}"
+            ) from e
 
     @staticmethod
     def _convert_to_gguf_intermediate(
@@ -345,17 +389,19 @@ class GGUFQuantizer:
         input_file: str,
         output_file: str,
         quant_type: str,
+        intermediate_format: str,
         logger: QuantizationLogger
     ):
         """Quantize GGUF file to target precision."""
         logger.info(f"Quantizing GGUF to {quant_type}...")
 
-        # Skip quantization if target format is already F16 or F32
-        if quant_type in ["F16", "F32"]:
-            logger.info(f"Target format {quant_type} matches intermediate format, skipping quantization")
-            # Copy the file instead
-            import shutil
-            shutil.copy2(input_file, output_file)
+        # Skip quantization if target format matches intermediate format
+        if quant_type.upper() == intermediate_format.upper():
+            logger.info(f"Target format {quant_type} matches intermediate format {intermediate_format}, skipping quantization")
+            # Only copy if the filenames are different
+            if input_file != output_file:
+                import shutil
+                shutil.copy2(input_file, output_file)
             return
 
         # Build the quantization command
@@ -442,13 +488,22 @@ class GGUFQuantizer:
             intermediate_file,
             final_file,
             config.gguf_quant_type,
+            config.gguf_intermediate_format,
             logger
         )
 
         # Clean up intermediate file if different from final
-        if intermediate_file != final_file and os.path.exists(intermediate_file):
-            logger.info(f"Cleaning up intermediate file: {intermediate_file}")
-            os.remove(intermediate_file)
+        # Use os.path.samefile to handle case-insensitive filesystems
+        try:
+            if os.path.exists(intermediate_file) and os.path.exists(final_file):
+                if not os.path.samefile(intermediate_file, final_file):
+                    logger.info(f"Cleaning up intermediate file: {intermediate_file}")
+                    os.remove(intermediate_file)
+        except (OSError, ValueError):
+            # If samefile fails, fall back to string comparison
+            if intermediate_file != final_file and os.path.exists(intermediate_file):
+                logger.info(f"Cleaning up intermediate file: {intermediate_file}")
+                os.remove(intermediate_file)
 
         dt = time.time() - t0
         logger.info(f"Completed. Saved GGUF quantized model to {final_file} in {dt:.1f}s")
