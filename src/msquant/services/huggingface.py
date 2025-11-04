@@ -1,5 +1,5 @@
 """HuggingFace Hub API service for searching models and datasets."""
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Literal
 from dataclasses import dataclass
 from huggingface_hub import list_models, list_datasets, model_info, dataset_info
 from huggingface_hub.hf_api import ModelInfo, DatasetInfo
@@ -70,12 +70,15 @@ class HuggingFaceService:
         try:
             logger.info(f"Searching models: query={query}, limit={limit}, sort={sort}")
 
+            # Convert direction: -1 stays as -1, 1 becomes None (for ascending)
+            hf_direction: Optional[Literal[-1]] = -1 if direction == -1 else None
+
             # Use huggingface_hub library to search models
             models = list_models(
                 search=query if query else None,
                 limit=limit,
                 sort=sort,
-                direction=direction
+                direction=hf_direction
             )
 
             results = []
@@ -130,12 +133,15 @@ class HuggingFaceService:
         try:
             logger.info(f"Searching datasets: query={query}, limit={limit}, sort={sort}")
 
+            # Convert direction: -1 stays as -1, 1 becomes None (for ascending)
+            hf_direction: Optional[Literal[-1]] = -1 if direction == -1 else None
+
             # Use huggingface_hub library to search datasets
             datasets = list_datasets(
                 search=query if query else None,
                 limit=limit,
                 sort=sort,
-                direction=direction
+                direction=hf_direction
             )
 
             results = []

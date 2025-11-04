@@ -34,11 +34,13 @@ class HFSearchDialog:
         self.on_select = on_select
         self.title = title or f"Search HuggingFace {search_type.capitalize()}s"
 
-        self.dialog: Optional[ui.dialog] = None
-        self.search_input: Optional[ui.input] = None
-        self.results_container: Optional[ui.column] = None
-        self.loading_spinner: Optional[ui.spinner] = None
-        self.error_label: Optional[ui.label] = None
+        self.dialog: ui.dialog
+        self.search_input: ui.input
+        self.results_container: ui.column
+        self.loading_spinner: ui.spinner
+        self.error_label: ui.label
+        self.sort_select: ui.select
+        self.direction_select: ui.select
         self.search_results: List[HFSearchResult] = []
 
     def show(self):
@@ -99,11 +101,11 @@ class HFSearchDialog:
         # Perform initial search with empty query to show popular items
         self._perform_search()
 
-    async def _perform_search(self):
+    def _perform_search(self) -> None:
         """Perform the search based on current input."""
         query = self.search_input.value.strip() if self.search_input.value else ""
-        sort = self.sort_select.value
-        direction = self.direction_select.value
+        sort = str(self.sort_select.value) if self.sort_select.value else 'downloads'
+        direction = int(self.direction_select.value) if self.direction_select.value is not None else -1
 
         # Clear previous results and errors
         self.results_container.clear()
@@ -181,12 +183,12 @@ class HFSearchDialog:
                 with ui.column().classes('gap-2'):
                     ui.button(
                         'Select',
-                        on_click=lambda r=result: self._select_item(r)
+                        on_click=lambda e=None, r=result: self._select_item(r)
                     ).props('color=primary')
 
                     ui.button(
                         'View Details',
-                        on_click=lambda r=result: self._show_details(r)
+                        on_click=lambda e=None, r=result: self._show_details(r)
                     ).props('outline')
 
                     # Link to HuggingFace
@@ -207,7 +209,7 @@ class HFSearchDialog:
             logger.error(f"Selection failed: {e}")
             ui.notify(f'Failed to select item: {str(e)}', type='negative')
 
-    async def _show_details(self, result: HFSearchResult):
+    def _show_details(self, result: HFSearchResult) -> None:
         """Show detailed information about an item."""
         details_dialog = ui.dialog().props('maximized')
 
