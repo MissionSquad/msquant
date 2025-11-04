@@ -125,7 +125,7 @@ def create_configure_page(job_service: JobService, storage_service: StorageServi
                         <strong>Recommended:</strong> Q4_K_M (balanced), Q5_K_M (best quality)<br>
                         <strong>Intermediate:</strong> f16 (default), f32 (higher precision), q8_0 (smaller)
                     </p>
-                ''')
+                ''', sanitize=False)
 
                 ui.separator()
 
