@@ -108,7 +108,7 @@ class AWQQuantizer:
                 "weights": {
                     "num_bits": config.w_bit,
                     "type": "int",
-                    "symmetric": config.zero_point,
+                    "symmetric": not config.zero_point,
                     "strategy": "group",
                     "group_size": config.group_size,
                 },
@@ -146,10 +146,10 @@ class AWQQuantizer:
         
         if config.calib_config:
             oneshot_kwargs["dataset_config_name"] = config.calib_config
-        
+
         if config.calib_split:
-            oneshot_kwargs["dataset_split"] = config.calib_split
-        
+            oneshot_kwargs["splits"] = {"calibration": config.calib_split}
+
         logger.info("Starting LLM-Compressor oneshot() with AWQ", {
             "model": oneshot_kwargs["model"],
             "dataset": oneshot_kwargs["dataset"],
@@ -220,10 +220,10 @@ class NVFP4Quantizer:
         
         if config.calib_config:
             oneshot_kwargs["dataset_config_name"] = config.calib_config
-        
+
         if config.calib_split:
-            oneshot_kwargs["dataset_split"] = config.calib_split
-        
+            oneshot_kwargs["splits"] = {"calibration": config.calib_split}
+
         logger.info("Starting LLM-Compressor oneshot() with FP4 quantization", {
             "model": oneshot_kwargs["model"],
             "dataset": oneshot_kwargs["dataset"],
