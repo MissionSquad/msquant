@@ -301,7 +301,7 @@ class GGUFQuantizer:
         logger.info(f"Converting model to GGUF {intermediate_format} format...")
 
         # Find the convert-hf-to-gguf.py script
-        convert_script = "/opt/llama.cpp/convert_hf_to_gguf.py"
+        convert_script = "/opt/llama.cpp/convert-hf-to-gguf.py"
 
         # Build the conversion command
         cmd = [

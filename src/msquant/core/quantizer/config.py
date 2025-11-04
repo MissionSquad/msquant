@@ -75,9 +75,14 @@ class QuantizationConfig:
         self.non_uniform = non_uniform
         self.mix_fp8 = mix_fp8
 
-        # GGUF
-        self.gguf_quant_type = gguf_quant_type.upper() if isinstance(gguf_quant_type, str) else gguf_quant_type
-        self.gguf_intermediate_format = gguf_intermediate_format.lower() if isinstance(gguf_intermediate_format, str) else gguf_intermediate_format
+        # GGUF - validate and convert types
+        if not isinstance(gguf_quant_type, str):
+            raise TypeError(f"gguf_quant_type must be a string, got {type(gguf_quant_type).__name__}")
+        self.gguf_quant_type = gguf_quant_type.upper()
+
+        if not isinstance(gguf_intermediate_format, str):
+            raise TypeError(f"gguf_intermediate_format must be a string, got {type(gguf_intermediate_format).__name__}")
+        self.gguf_intermediate_format = gguf_intermediate_format.lower()
 
         # Paths
         self.hf_home = hf_home
