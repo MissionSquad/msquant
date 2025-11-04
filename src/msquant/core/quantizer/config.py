@@ -39,8 +39,8 @@ class QuantizationConfig:
         self.max_seq_length = int(max_seq_length)
         
         # AWQ
-        self.w_bit = w_bit
-        self.group_size = group_size
+        self.w_bit = int(w_bit)
+        self.group_size = int(group_size)
         self.zero_point = zero_point
         
         # NVFP4
