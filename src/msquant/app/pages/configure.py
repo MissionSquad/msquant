@@ -20,6 +20,8 @@ def create_configure_page(job_service: JobService, storage_service: StorageServi
         'w_bit': 4,
         'group_size': 128,
         'zero_point': True,
+        'gguf_quant_type': 'Q4_K_M',
+        'gguf_intermediate_format': 'f16',
     }
     
     def start_quantization():
@@ -37,6 +39,8 @@ def create_configure_page(job_service: JobService, storage_service: StorageServi
                 w_bit=form_data['w_bit'],
                 group_size=form_data['group_size'],
                 zero_point=form_data['zero_point'],
+                gguf_quant_type=form_data['gguf_quant_type'],
+                gguf_intermediate_format=form_data['gguf_intermediate_format'],
             )
             
             if job_service.start_job(config):
@@ -61,7 +65,7 @@ def create_configure_page(job_service: JobService, storage_service: StorageServi
                 # Quantization method
                 ui.label('Quantization Method').classes('text-2xl font-bold')
                 with ui.row().classes('w-full gap-4'):
-                    ui.radio(['awq', 'nvfp4'], value='awq').bind_value(form_data, 'quant_method').props('inline')
+                    ui.radio(['awq', 'nvfp4', 'gguf'], value='awq').bind_value(form_data, 'quant_method').props('inline')
                 
                 ui.separator()
                 
@@ -99,9 +103,32 @@ def create_configure_page(job_service: JobService, storage_service: StorageServi
                         label='Group Size'
                     ).classes('flex-1').bind_value(form_data, 'group_size').props('use-input new-value-mode=add-unique')
                 ui.checkbox('Zero Point', value=True).bind_value(form_data, 'zero_point')
-                
+
                 ui.separator()
-                
+
+                # GGUF-specific settings
+                ui.label('GGUF Settings (only for GGUF method)').classes('text-2xl font-bold')
+                with ui.row().classes('w-full gap-4'):
+                    ui.select(
+                        ['Q2_K', 'Q3_K_S', 'Q3_K_M', 'Q3_K_L', 'Q4_0', 'Q4_1', 'Q4_K_S', 'Q4_K_M',
+                         'Q5_0', 'Q5_1', 'Q5_K_S', 'Q5_K_M', 'Q6_K', 'Q8_0', 'F16', 'F32'],
+                        value='Q4_K_M',
+                        label='Quantization Type'
+                    ).classes('flex-1').bind_value(form_data, 'gguf_quant_type')
+                    ui.select(
+                        ['f16', 'f32', 'q8_0'],
+                        value='f16',
+                        label='Intermediate Format'
+                    ).classes('flex-1').bind_value(form_data, 'gguf_intermediate_format')
+                ui.html('''
+                    <p class="text-sm text-gray-600">
+                        <strong>Recommended:</strong> Q4_K_M (balanced), Q5_K_M (best quality)<br>
+                        <strong>Intermediate:</strong> f16 (default), f32 (higher precision), q8_0 (smaller)
+                    </p>
+                ''')
+
+                ui.separator()
+
                 # Actions
                 with ui.row().classes('w-full gap-4 justify-end'):
                     ui.button('Start Quantization', on_click=start_quantization).props('color=primary size=lg')

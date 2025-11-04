@@ -32,6 +32,25 @@ RUN pip install "transformers>=4.52.0"
 
 RUN pip install "llmcompressor"
 
+# Install llama.cpp for GGUF quantization support
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+    cmake \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+# Clone and build llama.cpp
+RUN git clone https://github.com/ggerganov/llama.cpp /opt/llama.cpp && \
+    cd /opt/llama.cpp && \
+    git checkout master && \
+    make -j$(nproc) && \
+    pip install -r requirements.txt && \
+    pip install gguf
+
+# Add llama.cpp to PATH
+ENV PATH="/opt/llama.cpp:${PATH}"
+
 WORKDIR /workspace
 
 # Copy source
