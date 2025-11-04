@@ -38,7 +38,6 @@ def create_monitor_page(job_service: JobService, gpu_monitor: GPUMonitor):
                 ui.label('Select GPU:')
                 gpu_select = ui.select(
                     options=[],
-                    value=0,
                     on_change=lambda e: on_gpu_select(e.value)
                 ).classes('w-48')
             
@@ -109,28 +108,41 @@ def create_monitor_page(job_service: JobService, gpu_monitor: GPUMonitor):
         def update_gpu_metrics():
             """Update GPU metrics display and charts."""
             gpus = gpu_monitor.query_gpus()
-            
+
             # Update available GPUs list
             if gpus:
                 gpu_options = [
                     {"label": f"GPU {gpu.index}: {gpu.name}", "value": gpu.index}
                     for gpu in gpus
                 ]
-                
+
                 if gpu_options != available_gpus["list"]:
                     available_gpus["list"] = gpu_options
                     gpu_select.options = gpu_options
+                    # Only set value if we have GPUs and no valid selection
                     if selected_gpu_index["value"] not in [g.index for g in gpus]:
                         selected_gpu_index["value"] = gpus[0].index
                         gpu_select.value = gpus[0].index
-            
+                        gpu_select.update()
+            else:
+                # No GPUs detected
+                if available_gpus["list"]:  # Had GPUs before but now gone
+                    available_gpus["list"] = []
+                    gpu_select.options = []
+                    gpu_select.update()
+
             # Update text summary
             summary = gpu_monitor.format_summary(gpus)
             gpu_summary.content = summary
-            
-            # Update charts if available
+
+            # Update charts only if we have a valid GPU selection
             if charts and gpus:
                 current_gpu = selected_gpu_index["value"]
+                # Verify that the selected GPU actually exists in the current GPU list
+                gpu_indices = [g.index for g in gpus]
+                if current_gpu not in gpu_indices:
+                    return  # Don't update charts if selected GPU is invalid
+
                 history = gpu_monitor.get_history(current_gpu)
                 
                 if history:
