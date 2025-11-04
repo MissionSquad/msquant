@@ -69,11 +69,23 @@ def create_configure_page(job_service: JobService, storage_service: StorageServi
                 ui.label('Calibration Settings').classes('text-2xl font-bold')
                 ui.input('Calibration Dataset', placeholder='e.g., wikitext').classes('w-full').bind_value(form_data, 'calib_dataset')
                 ui.input('Dataset Config', placeholder='e.g., wikitext-2-raw-v1 (optional)').classes('w-full').bind_value(form_data, 'calib_config')
-                ui.input('Dataset Split', placeholder='e.g., train (optional)').classes('w-full').bind_value(form_data, 'calib_split')
-                
+                ui.select(
+                    ['train', 'test', 'validation', 'train[:512]', 'test[:512]'],
+                    value='train',
+                    label='Dataset Split'
+                ).classes('w-full').bind_value(form_data, 'calib_split').props('use-input new-value-mode=add-unique clearable')
+
                 with ui.row().classes('w-full gap-4'):
-                    ui.number('Max Calibration Samples', value=256, min=1, max=10000).classes('flex-1').bind_value(form_data, 'max_calib_samples')
-                    ui.number('Max Sequence Length', value=2048, min=128, max=8192).classes('flex-1').bind_value(form_data, 'max_seq_length')
+                    ui.select(
+                        [128, 256, 512, 1024, 2048],
+                        value=256,
+                        label='Max Calibration Samples'
+                    ).classes('flex-1').bind_value(form_data, 'max_calib_samples').props('use-input new-value-mode=add-unique')
+                    ui.select(
+                        [512, 1024, 2048, 4096, 8192],
+                        value=2048,
+                        label='Max Sequence Length'
+                    ).classes('flex-1').bind_value(form_data, 'max_seq_length').props('use-input new-value-mode=add-unique')
                 
                 ui.separator()
                 
@@ -81,7 +93,11 @@ def create_configure_page(job_service: JobService, storage_service: StorageServi
                 ui.label('AWQ Settings (only for AWQ method)').classes('text-2xl font-bold')
                 with ui.row().classes('w-full gap-4'):
                     ui.select([2, 3, 4, 5, 8], value=4, label='Weight Bits').classes('flex-1').bind_value(form_data, 'w_bit')
-                    ui.number('Group Size', value=128, min=1).classes('flex-1').bind_value(form_data, 'group_size')
+                    ui.select(
+                        [32, 64, 128, 256],
+                        value=128,
+                        label='Group Size'
+                    ).classes('flex-1').bind_value(form_data, 'group_size').props('use-input new-value-mode=add-unique')
                 ui.checkbox('Zero Point', value=True).bind_value(form_data, 'zero_point')
                 
                 ui.separator()
