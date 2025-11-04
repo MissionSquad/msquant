@@ -35,13 +35,13 @@ RUN pip install "llmcompressor"
 # Install llama.cpp for GGUF quantization support
 ARG LLAMA_CPP_VERSION=b6945
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
+    curl \
     unzip \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Download and install pre-compiled llama.cpp binary
-RUN wget -q https://github.com/ggml-org/llama.cpp/releases/download/${LLAMA_CPP_VERSION}/llama-${LLAMA_CPP_VERSION}-bin-ubuntu-x64.zip -O /tmp/llama.zip && \
+RUN curl -L -o /tmp/llama.zip https://github.com/ggml-org/llama.cpp/releases/download/${LLAMA_CPP_VERSION}/llama-${LLAMA_CPP_VERSION}-bin-ubuntu-x64.zip && \
     unzip -q /tmp/llama.zip -d /tmp/llama-extract && \
     EXTRACTED_DIR=$(find /tmp/llama-extract -maxdepth 1 -type d -name "llama-*" | head -1) && \
     if [ -z "$EXTRACTED_DIR" ]; then echo "Error: No llama directory found after extraction"; ls -la /tmp/llama-extract; exit 1; fi && \
