@@ -76,10 +76,10 @@ class HFSearchDialog:
 
                 self.direction_select = ui.select(
                     options=[
-                        {'label': 'Descending', 'value': -1},
-                        {'label': 'Ascending', 'value': 1}
+                        {'label': 'Descending', 'value': 'desc'},
+                        {'label': 'Ascending', 'value': 'asc'}
                     ],
-                    value=-1,
+                    value='desc',
                     label='Direction'
                 ).classes('w-48').props('emit-value map-options')
 
@@ -105,7 +105,9 @@ class HFSearchDialog:
         """Perform the search based on current input."""
         query = self.search_input.value.strip() if self.search_input.value else ""
         sort = str(self.sort_select.value) if self.sort_select.value else 'downloads'
-        direction = int(self.direction_select.value) if self.direction_select.value is not None else -1
+        # Convert string direction to integer: 'desc' -> -1, 'asc' -> 1
+        direction_str = str(self.direction_select.value) if self.direction_select.value else 'desc'
+        direction = -1 if direction_str == 'desc' else 1
 
         # Clear previous results and errors
         self.results_container.clear()
