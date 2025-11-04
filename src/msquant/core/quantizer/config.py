@@ -35,8 +35,8 @@ class QuantizationConfig:
         self.calib_dataset = calib_dataset
         self.calib_config = calib_config
         self.calib_split = calib_split
-        self.max_calib_samples = max_calib_samples
-        self.max_seq_length = max_seq_length
+        self.max_calib_samples = int(max_calib_samples)
+        self.max_seq_length = int(max_seq_length)
         
         # AWQ
         self.w_bit = w_bit
