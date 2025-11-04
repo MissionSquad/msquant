@@ -6,7 +6,7 @@ from nicegui import ui, app
 
 from msquant.app.pages import home, configure, monitor, results
 from msquant.app.components.layout import create_header
-from msquant.services import JobService, StorageService
+from msquant.services import JobService, StorageService, HuggingFaceService
 from msquant.core.monitoring import GPUMonitor
 
 
@@ -18,11 +18,13 @@ storage_service = StorageService(
     hf_datasets_cache=os.environ.get("HF_DATASETS_CACHE", "/workspace/hf/datasets"),
 )
 gpu_monitor = GPUMonitor(history_size=60)
+hf_service = HuggingFaceService()
 
 # Store in app storage for access by pages
 app.storage.general['job_service'] = job_service
 app.storage.general['storage_service'] = storage_service
 app.storage.general['gpu_monitor'] = gpu_monitor
+app.storage.general['hf_service'] = hf_service
 
 
 def init_routes():
@@ -36,7 +38,7 @@ def init_routes():
     @ui.page('/configure')
     def configure_page():
         create_header()
-        configure.create_configure_page(job_service, storage_service)
+        configure.create_configure_page(job_service, storage_service, hf_service)
     
     @ui.page('/monitor')
     def monitor_page():
