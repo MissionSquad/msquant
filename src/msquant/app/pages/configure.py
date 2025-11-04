@@ -1,10 +1,15 @@
 """Configuration page for setting up quantization jobs."""
 from nicegui import ui
 from msquant.core.quantizer import QuantizationConfig
-from msquant.services import JobService, StorageService
+from msquant.services import JobService, StorageService, HuggingFaceService
+from msquant.app.components import HFSearchDialog
 
 
-def create_configure_page(job_service: JobService, storage_service: StorageService):
+def create_configure_page(
+    job_service: JobService,
+    storage_service: StorageService,
+    hf_service: HuggingFaceService
+):
     """Create the configuration page."""
     
     # Form state
@@ -54,7 +59,32 @@ def create_configure_page(job_service: JobService, storage_service: StorageServi
             with ui.column().classes('w-full gap-4'):
                 # Model settings
                 ui.label('Model Settings').classes('text-2xl font-bold')
-                ui.input('Model ID', placeholder='e.g., meta-llama/Llama-3.1-8B').classes('w-full').bind_value(form_data, 'model_id')
+
+                # Model ID input with search button
+                with ui.row().classes('w-full gap-2'):
+                    model_input = ui.input(
+                        'Model ID',
+                        placeholder='e.g., meta-llama/Llama-3.1-8B'
+                    ).classes('flex-1').bind_value(form_data, 'model_id')
+
+                    def show_model_search():
+                        def on_model_select(model_id: str):
+                            form_data['model_id'] = model_id
+                            model_input.update()
+
+                        search_dialog = HFSearchDialog(
+                            hf_service=hf_service,
+                            search_type='model',
+                            on_select=on_model_select,
+                            title='Search HuggingFace Models'
+                        )
+                        search_dialog.show()
+
+                    ui.button(
+                        'Search Models',
+                        on_click=show_model_search,
+                        icon='search'
+                    ).props('color=secondary')
                 
                 ui.separator()
                 
@@ -67,7 +97,32 @@ def create_configure_page(job_service: JobService, storage_service: StorageServi
                 
                 # Calibration settings
                 ui.label('Calibration Settings').classes('text-2xl font-bold')
-                ui.input('Calibration Dataset', placeholder='e.g., wikitext').classes('w-full').bind_value(form_data, 'calib_dataset')
+
+                # Calibration Dataset input with search button
+                with ui.row().classes('w-full gap-2'):
+                    dataset_input = ui.input(
+                        'Calibration Dataset',
+                        placeholder='e.g., wikitext'
+                    ).classes('flex-1').bind_value(form_data, 'calib_dataset')
+
+                    def show_dataset_search():
+                        def on_dataset_select(dataset_id: str):
+                            form_data['calib_dataset'] = dataset_id
+                            dataset_input.update()
+
+                        search_dialog = HFSearchDialog(
+                            hf_service=hf_service,
+                            search_type='dataset',
+                            on_select=on_dataset_select,
+                            title='Search HuggingFace Datasets'
+                        )
+                        search_dialog.show()
+
+                    ui.button(
+                        'Search Datasets',
+                        on_click=show_dataset_search,
+                        icon='search'
+                    ).props('color=secondary')
                 ui.input('Dataset Config', placeholder='e.g., wikitext-2-raw-v1 (optional)').classes('w-full').bind_value(form_data, 'calib_config')
                 ui.select(
                     ['train', 'test', 'validation', 'train[:512]', 'test[:512]'],
