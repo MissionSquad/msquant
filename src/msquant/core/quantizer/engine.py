@@ -277,7 +277,7 @@ class GGUFQuantizer:
     def _download_model(model_id: str, cache_dir: str, logger: QuantizationLogger) -> str:
         """Download HuggingFace model to local cache."""
         from huggingface_hub import snapshot_download
-        from huggingface_hub.utils import (
+        from huggingface_hub.errors import (
             HfHubHTTPError,
             RepositoryNotFoundError,
             GatedRepoError,
@@ -294,15 +294,22 @@ class GGUFQuantizer:
             )
             logger.info(f"Model downloaded to {local_path}")
             return local_path
+        except GatedRepoError as e:
+            # Must be before RepositoryNotFoundError since it's a subclass
+            raise RuntimeError(
+                f"Model '{model_id}' is gated and requires authentication. "
+                f"Please log in with 'huggingface-cli login' and ensure you have access."
+            ) from e
+        except LocalEntryNotFoundError as e:
+            # Must be before HfHubHTTPError since it's a subclass
+            raise RuntimeError(
+                f"Model files not found for '{model_id}'. "
+                f"The repository may be empty or misconfigured."
+            ) from e
         except RepositoryNotFoundError as e:
             raise RuntimeError(
                 f"Model '{model_id}' not found on HuggingFace Hub. "
                 f"Please verify the model ID is correct."
-            ) from e
-        except GatedRepoError as e:
-            raise RuntimeError(
-                f"Model '{model_id}' is gated and requires authentication. "
-                f"Please log in with 'huggingface-cli login' and ensure you have access."
             ) from e
         except HfHubHTTPError as e:
             if e.response.status_code == 401:
@@ -323,11 +330,6 @@ class GGUFQuantizer:
             raise RuntimeError(
                 f"Network error while downloading model '{model_id}'. "
                 f"Please check your internet connection and try again."
-            ) from e
-        except LocalEntryNotFoundError as e:
-            raise RuntimeError(
-                f"Model files not found for '{model_id}'. "
-                f"The repository may be empty or misconfigured."
             ) from e
         except Exception as e:
             raise RuntimeError(
@@ -385,6 +387,11 @@ class GGUFQuantizer:
             raise RuntimeError(f"GGUF conversion failed: {e}") from e
 
     @staticmethod
+    def _normalize_format(format_str: str) -> str:
+        """Normalize format string for comparison (uppercase, replace hyphens with underscores)."""
+        return format_str.upper().replace('-', '_')
+
+    @staticmethod
     def _quantize_gguf(
         input_file: str,
         output_file: str,
@@ -396,7 +403,8 @@ class GGUFQuantizer:
         logger.info(f"Quantizing GGUF to {quant_type}...")
 
         # Skip quantization if target format matches intermediate format
-        if quant_type.upper() == intermediate_format.upper():
+        # Normalize both formats for comparison (handle case and separator differences)
+        if GGUFQuantizer._normalize_format(quant_type) == GGUFQuantizer._normalize_format(intermediate_format):
             logger.info(f"Target format {quant_type} matches intermediate format {intermediate_format}, skipping quantization")
             # Only copy if the filenames are different
             if input_file != output_file:
