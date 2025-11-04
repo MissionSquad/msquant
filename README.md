@@ -1,12 +1,13 @@
 # MSQuant
 
-Model Quantization Tool with NiceGUI interface for AWQ and NVFP4 quantization methods.
+Model Quantization Tool with NiceGUI interface for AWQ, NVFP4, and GGUF quantization methods.
 
 ## Features
 
 - **Quantization Methods**
   - AWQ (Activation-aware Weight Quantization): 4-bit integer quantization
   - NVFP4 (NVIDIA FP4): 4-bit floating-point quantization
+  - GGUF (GGML Universal File): Multiple quantization levels (Q4_K_M, Q5_K_M, Q6_K, Q8_0, etc.) using llama.cpp
 
 - **Web Interface**
   - Real-time GPU monitoring with visual charts (Highcharts)
@@ -118,11 +119,21 @@ pixi install
 
 Navigate to the **Configure** page and set:
 - Model ID (e.g., `meta-llama/Llama-3.1-8B`)
-- Quantization method (AWQ or NVFP4)
-- Calibration dataset settings
-- Method-specific parameters
+- Quantization method (AWQ, NVFP4, or GGUF)
+- Calibration dataset settings (required for AWQ and NVFP4)
+- Method-specific parameters:
+  - **AWQ**: Weight bits, group size, zero point
+  - **NVFP4**: Activation/weight schemes
+  - **GGUF**: Quantization type (Q4_K_M recommended, Q5_K_M for best quality), intermediate format (f16 default)
 
-**Note:** Output format is determined by the quantization backend. The saved checkpoint format follows the backend's default conventions.
+**Note:**
+- AWQ and NVFP4 output formats follow llmcompressor conventions (binary or safetensors)
+- GGUF produces `.gguf` files compatible with llama.cpp, Ollama, and other GGUF-compatible inference engines
+- GGUF quantization types:
+  - **Q4_K_M**: Recommended for balanced quality and size
+  - **Q5_K_M**: Best quality while maintaining reasonable size
+  - **Q6_K, Q8_0**: Higher precision options
+  - **Q2_K, Q3_K**: Smaller sizes with reduced quality
 
 ### 2. Monitor Progress
 
@@ -176,6 +187,7 @@ Replace `OWNER` with your GitHub username/organization.
 
 Built with:
 - [NiceGUI](https://nicegui.io/) - Web interface
-- [llmcompressor](https://github.com/vllm-project/llm-compressor) - Quantization engine
+- [llmcompressor](https://github.com/vllm-project/llm-compressor) - Quantization engine for AWQ/NVFP4
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) - GGUF quantization and inference
 - [vLLM](https://github.com/vllm-project/vllm) - LLM inference
 - [Pixi](https://pixi.sh/) - Package management

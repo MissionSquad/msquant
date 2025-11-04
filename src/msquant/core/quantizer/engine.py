@@ -240,6 +240,222 @@ class NVFP4Quantizer:
         return config.out_dir
 
 
+class GGUFQuantizer:
+    """GGUF quantization handler using llama.cpp."""
+
+    @staticmethod
+    def _check_llama_cpp_available():
+        """Check if llama.cpp tools are available."""
+        try:
+            # Check if convert-hf-to-gguf.py is available
+            result = subprocess.run(
+                ["bash", "-lc", "which python"],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if result.returncode != 0:
+                raise RuntimeError("Python not found in PATH")
+
+            # Check if llama-quantize is available
+            result = subprocess.run(
+                ["bash", "-lc", "which llama-quantize"],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if result.returncode != 0:
+                raise RuntimeError(
+                    "llama-quantize not found in PATH. "
+                    "Please ensure llama.cpp is properly installed."
+                )
+            return True
+        except Exception as e:
+            raise RuntimeError(f"llama.cpp availability check failed: {e}") from e
+
+    @staticmethod
+    def _download_model(model_id: str, cache_dir: str, logger: QuantizationLogger) -> str:
+        """Download HuggingFace model to local cache."""
+        from huggingface_hub import snapshot_download
+
+        logger.info(f"Downloading model {model_id} to cache...")
+        try:
+            local_path = snapshot_download(
+                repo_id=model_id,
+                cache_dir=cache_dir,
+                local_dir_use_symlinks=False
+            )
+            logger.info(f"Model downloaded to {local_path}")
+            return local_path
+        except Exception as e:
+            raise RuntimeError(f"Failed to download model: {e}") from e
+
+    @staticmethod
+    def _convert_to_gguf_intermediate(
+        model_path: str,
+        output_file: str,
+        intermediate_format: str,
+        logger: QuantizationLogger
+    ):
+        """Convert HuggingFace model to intermediate GGUF format."""
+        logger.info(f"Converting model to GGUF {intermediate_format} format...")
+
+        # Find the convert-hf-to-gguf.py script
+        convert_script = "/opt/llama.cpp/convert-hf-to-gguf.py"
+
+        # Build the conversion command
+        cmd = [
+            "python",
+            convert_script,
+            model_path,
+            "--outfile", output_file,
+            "--outtype", intermediate_format
+        ]
+
+        logger.info(f"Running command: {' '.join(cmd)}")
+
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+
+            # Stream output
+            if process.stdout:
+                for line in process.stdout:
+                    line = line.rstrip()
+                    if line:
+                        logger.info(f"[convert] {line}")
+
+            process.wait()
+
+            if process.returncode != 0:
+                raise RuntimeError(f"Conversion failed with exit code {process.returncode}")
+
+            logger.info(f"Conversion completed. Intermediate GGUF file: {output_file}")
+
+        except Exception as e:
+            raise RuntimeError(f"GGUF conversion failed: {e}") from e
+
+    @staticmethod
+    def _quantize_gguf(
+        input_file: str,
+        output_file: str,
+        quant_type: str,
+        logger: QuantizationLogger
+    ):
+        """Quantize GGUF file to target precision."""
+        logger.info(f"Quantizing GGUF to {quant_type}...")
+
+        # Skip quantization if target format is already F16 or F32
+        if quant_type in ["F16", "F32"]:
+            logger.info(f"Target format {quant_type} matches intermediate format, skipping quantization")
+            # Copy the file instead
+            import shutil
+            shutil.copy2(input_file, output_file)
+            return
+
+        # Build the quantization command
+        cmd = [
+            "llama-quantize",
+            input_file,
+            output_file,
+            quant_type
+        ]
+
+        logger.info(f"Running command: {' '.join(cmd)}")
+
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+
+            # Stream output
+            if process.stdout:
+                for line in process.stdout:
+                    line = line.rstrip()
+                    if line:
+                        logger.info(f"[quantize] {line}")
+
+            process.wait()
+
+            if process.returncode != 0:
+                raise RuntimeError(f"Quantization failed with exit code {process.returncode}")
+
+            logger.info(f"Quantization completed. Output file: {output_file}")
+
+        except Exception as e:
+            raise RuntimeError(f"GGUF quantization failed: {e}") from e
+
+    @staticmethod
+    def run(config: QuantizationConfig, logger: QuantizationLogger):
+        """Run GGUF quantization."""
+        import os
+
+        # Check if llama.cpp is available
+        GGUFQuantizer._check_llama_cpp_available()
+
+        logger.info("GGUF Quantization config:", {
+            "quant_type": config.gguf_quant_type,
+            "intermediate_format": config.gguf_intermediate_format,
+            "model_id": config.model_id,
+        })
+
+        t0 = time.time()
+
+        # Step 1: Download model from HuggingFace
+        model_path = GGUFQuantizer._download_model(
+            config.model_id,
+            config.hf_home,
+            logger
+        )
+
+        # Step 2: Convert to intermediate GGUF format
+        os.makedirs(config.out_dir, exist_ok=True)
+        safe_name = config.model_id.split("/")[-1].replace(":", "-")
+        intermediate_file = os.path.join(
+            config.out_dir,
+            f"{safe_name}-{config.gguf_intermediate_format}.gguf"
+        )
+
+        GGUFQuantizer._convert_to_gguf_intermediate(
+            model_path,
+            intermediate_file,
+            config.gguf_intermediate_format,
+            logger
+        )
+
+        # Step 3: Quantize to target precision
+        final_file = os.path.join(
+            config.out_dir,
+            f"{safe_name}-{config.gguf_quant_type}.gguf"
+        )
+
+        GGUFQuantizer._quantize_gguf(
+            intermediate_file,
+            final_file,
+            config.gguf_quant_type,
+            logger
+        )
+
+        # Clean up intermediate file if different from final
+        if intermediate_file != final_file and os.path.exists(intermediate_file):
+            logger.info(f"Cleaning up intermediate file: {intermediate_file}")
+            os.remove(intermediate_file)
+
+        dt = time.time() - t0
+        logger.info(f"Completed. Saved GGUF quantized model to {final_file} in {dt:.1f}s")
+
+        return config.out_dir
+
+
 def quantize(config: QuantizationConfig, log_callback: Optional[Callable[[str], None]] = None):
     """
     Main quantization entry point.
@@ -285,6 +501,8 @@ def quantize(config: QuantizationConfig, log_callback: Optional[Callable[[str], 
             output_dir = AWQQuantizer.run(config, logger)
         elif config.quant_method == "nvfp4":
             output_dir = NVFP4Quantizer.run(config, logger)
+        elif config.quant_method == "gguf":
+            output_dir = GGUFQuantizer.run(config, logger)
         else:
             raise ValueError(f"Unsupported quantization method: {config.quant_method}")
         

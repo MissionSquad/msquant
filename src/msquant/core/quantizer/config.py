@@ -24,6 +24,9 @@ class QuantizationConfig:
         w_scheme: str = "fp4",
         non_uniform: bool = False,
         mix_fp8: bool = False,
+        # GGUF params
+        gguf_quant_type: str = "Q4_K_M",
+        gguf_intermediate_format: str = "f16",
         # Paths
         hf_home: str = "/workspace/hf",
         hf_datasets_cache: str = "/workspace/hf/datasets",
@@ -71,7 +74,16 @@ class QuantizationConfig:
         self.w_scheme = w_scheme
         self.non_uniform = non_uniform
         self.mix_fp8 = mix_fp8
-        
+
+        # GGUF - validate and convert types
+        if not isinstance(gguf_quant_type, str):
+            raise TypeError(f"gguf_quant_type must be a string, got {type(gguf_quant_type).__name__}")
+        self.gguf_quant_type = gguf_quant_type.upper()
+
+        if not isinstance(gguf_intermediate_format, str):
+            raise TypeError(f"gguf_intermediate_format must be a string, got {type(gguf_intermediate_format).__name__}")
+        self.gguf_intermediate_format = gguf_intermediate_format.lower()
+
         # Paths
         self.hf_home = hf_home
         self.hf_datasets_cache = hf_datasets_cache
@@ -89,15 +101,36 @@ class QuantizationConfig:
         """Validate configuration."""
         if not self.model_id:
             raise ValueError("model_id is required")
-        
-        if self.quant_method not in ["awq", "nvfp4"]:
+
+        if self.quant_method not in ["awq", "nvfp4", "gguf"]:
             raise ValueError(f"Invalid quant_method: {self.quant_method}")
-        
+
         if self.output_format not in ["binary", "safetensors"]:
             raise ValueError(f"Invalid output_format: {self.output_format}")
-        
+
         if self.quant_method == "awq":
             if self.w_bit not in [2, 3, 4, 5, 8]:
                 raise ValueError(f"Invalid w_bit for AWQ: {self.w_bit}")
             if self.group_size <= 0:
                 raise ValueError(f"Invalid group_size: {self.group_size}")
+
+        if self.quant_method == "gguf":
+            # Validate GGUF quantization type
+            valid_gguf_types = [
+                "Q2_K", "Q3_K_S", "Q3_K_M", "Q3_K_L",
+                "Q4_0", "Q4_1", "Q4_K_S", "Q4_K_M",
+                "Q5_0", "Q5_1", "Q5_K_S", "Q5_K_M",
+                "Q6_K", "Q8_0", "F16", "F32"
+            ]
+            if self.gguf_quant_type not in valid_gguf_types:
+                raise ValueError(
+                    f"Invalid gguf_quant_type: {self.gguf_quant_type}. "
+                    f"Must be one of: {', '.join(valid_gguf_types)}"
+                )
+
+            # Validate intermediate format
+            if self.gguf_intermediate_format not in ["f16", "f32", "q8_0"]:
+                raise ValueError(
+                    f"Invalid gguf_intermediate_format: {self.gguf_intermediate_format}. "
+                    f"Must be one of: f16, f32, q8_0"
+                )

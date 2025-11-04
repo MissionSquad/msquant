@@ -40,6 +40,8 @@ huggingface_hub = "*"
 hf_transfer = "*"
 tqdm = "*"
 pandas = ">=2.2.0"
+# GGUF support
+gguf = "*"
 # Optional dev extras
 types-tqdm = "*"
 
