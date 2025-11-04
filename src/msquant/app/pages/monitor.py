@@ -14,7 +14,7 @@ def create_monitor_page(job_service: JobService, gpu_monitor: GPUMonitor):
     available_gpus = {"list": []}
 
     # Track last notified status to prevent notification spam
-    last_notified_status = {"status": None, "message": None}
+    last_notified_status: dict[str, str | None] = {"status": None, "message": None}
 
     with ui.column().classes('w-full p-8 gap-4'):
         ui.label('Job Monitor').classes('text-4xl font-bold')
