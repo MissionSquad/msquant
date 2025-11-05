@@ -11,8 +11,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TOKENIZERS_PARALLELISM=false
 
 # System packages (if needed, keep minimal)
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
-    apt-get clean && \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    git \
+    && apt-get clean && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Upgrade pip
@@ -31,7 +33,10 @@ RUN pip install "vllm>=0.11.0"
 
 RUN pip install "transformers>=4.52.0"
 
-RUN pip install "llmcompressor>=0.8.0"
+# Install llmcompressor from specific commit that includes _update_mamba_mask fix
+# Commit 4cfc0e6217c263cb7450cbf95764de4a1fbffab8 (Oct 14, 2025)
+# This fix is not yet in any release (latest is 0.8.1 from Oct 8, 2025)
+RUN pip install git+https://github.com/vllm-project/llm-compressor.git@4cfc0e6217c263cb7450cbf95764de4a1fbffab8
 
 # Install llama.cpp for GGUF quantization support
 ARG LLAMA_CPP_VERSION=b6945
