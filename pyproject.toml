@@ -22,7 +22,7 @@ classifiers = [
 dependencies = [
     "nicegui>=2.0.0",
     "nicegui-highcharts>=0.2.0",
-    "vllm>=0.11.0",
+    # Note: vllm is only needed at runtime in Docker, not for development/CI
     "llmcompressor>=0.8.0",
     "transformers>=4.52.0",
     "datasets",
