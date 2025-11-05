@@ -31,7 +31,7 @@ nicegui = ">=2.0.0"
 nicegui-highcharts = ">=0.2.0"
 # Quantization / ML stack used by the engine
 vllm = ">=0.11.0"
-llmcompressor = "*"
+llmcompressor = ">=0.8.0"
 transformers = ">=4.52.0"
 datasets = "*"
 accelerate = "*"
