@@ -15,8 +15,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0
         with:
           pixi-version: "latest"
-          cache: true
-          locked: false
+          cache: false
 
       - name: Lint
         run: pixi run lint
